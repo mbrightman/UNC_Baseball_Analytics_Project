@@ -1,0 +1,152 @@
+---
+title: "Baseball Analytics Project Attempt 2"
+output: html_notebook
+---
+
+```{r}
+require(readr)
+require(tidyverse)
+require(formattable)
+```
+
+```{r}
+newP2020Data = pitcher2020AllData %>% select(player_name, batter, events, stand, p_throws, balls, strikes, on_3b, on_2b, on_1b, outs_when_up, inning)
+
+newP2020Data$pressure_score = 0
+```
+
+# Adds to pressure score based on inning.
+
+```{r message=TRUE, warning=TRUE}
+
+newP2020Data$pressure_score = ifelse(newP2020Data$inning == "1" | newP2020Data$inning == "2" | newP2020Data$inning == "3", newP2020Data$pressure_score+1, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$inning == "4" | newP2020Data$inning == "5" | newP2020Data$inning == "6", newP2020Data$pressure_score+2, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$inning == "7" | newP2020Data$inning == "8" | newP2020Data$inning == "9", newP2020Data$pressure_score+3, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$inning >= 10, newP2020Data$pressure_score+4, newP2020Data$pressure_score)
+
+```
+
+# Adds to pressure score based on number of outs.
+
+```{r}
+newP2020Data$pressure_score = ifelse(newP2020Data$outs_when_up == "0", newP2020Data$pressure_score+1, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$outs_when_up == "1", newP2020Data$pressure_score+2, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$outs_when_up == "2", newP2020Data$pressure_score+3, newP2020Data$pressure_score)
+```
+
+# Adds to pressure score based on runners on.
+
+>> Situations:
+> None on - NA NA NA
+> First - ID NA NA
+> Second - NA ID NA
+> Third - NA NA ID
+> First + Second - ID ID NA
+> First + Third - ID NA ID
+> Second + Third - NA ID ID
+> Bases Loaded - ID ID ID
+
+```{r}
+newP2020Data$pressure_score = ifelse(is.na(newP2020Data$on_1b) & is.na(newP2020Data$on_2b) & is.na(newP2020Data$on_3b), newP2020Data$pressure_score+1, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(!is.na(newP2020Data$on_1b) & is.na(newP2020Data$on_2b) & is.na(newP2020Data$on_3b), newP2020Data$pressure_score+2, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(is.na(newP2020Data$on_1b) & !is.na(newP2020Data$on_2b) & is.na(newP2020Data$on_3b), newP2020Data$pressure_score+3, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(is.na(newP2020Data$on_1b) & is.na(newP2020Data$on_2b) & !is.na(newP2020Data$on_3b), newP2020Data$pressure_score+4, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(!is.na(newP2020Data$on_1b) & !is.na(newP2020Data$on_2b) & is.na(newP2020Data$on_3b), newP2020Data$pressure_score+5, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(!is.na(newP2020Data$on_1b) & is.na(newP2020Data$on_2b) & !is.na(newP2020Data$on_3b), newP2020Data$pressure_score+6, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(is.na(newP2020Data$on_1b) & !is.na(newP2020Data$on_2b) & !is.na(newP2020Data$on_3b), newP2020Data$pressure_score+7, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(!is.na(newP2020Data$on_1b) & !is.na(newP2020Data$on_2b) & !is.na(newP2020Data$on_3b), newP2020Data$pressure_score+8, newP2020Data$pressure_score)
+```
+
+# Adds to pressure score based on count.
+
+```{r}
+newP2020Data$pressure_score = ifelse(newP2020Data$balls == "0" & newP2020Data$strikes == "0", newP2020Data$pressure_score+3, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$balls == "0" & newP2020Data$strikes == "1", newP2020Data$pressure_score+2, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$balls == "0" & newP2020Data$strikes == "2", newP2020Data$pressure_score+1, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$balls == "1" & newP2020Data$strikes == "0", newP2020Data$pressure_score+4, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$balls == "1" & newP2020Data$strikes == "1", newP2020Data$pressure_score+3, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$balls == "1" & newP2020Data$strikes == "2", newP2020Data$pressure_score+2, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$balls == "2" & newP2020Data$strikes == "0", newP2020Data$pressure_score+5, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$balls == "2" & newP2020Data$strikes == "1", newP2020Data$pressure_score+4, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$balls == "2" & newP2020Data$strikes == "2", newP2020Data$pressure_score+3, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$balls == "3" & newP2020Data$strikes == "0", newP2020Data$pressure_score+6, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$balls == "3" & newP2020Data$strikes == "1", newP2020Data$pressure_score+5, newP2020Data$pressure_score)
+newP2020Data$pressure_score = ifelse(newP2020Data$balls == "3" & newP2020Data$strikes == "2", newP2020Data$pressure_score+7, newP2020Data$pressure_score)
+```
+
+>> Calculating OBP by pitcher
+
+> OBP = (Hits + Walks + Hit by Pitch) / (At Bats + Walks + Hit by Pitch + Sacrifice Flies)
+
+```{r}
+pitcherList = unique(newP2020Data$player_name)
+
+output1 = data.frame(Pitcher = 0, OverallOBP = 0, Pressure0to7OBP = 0, PressureOver7OBP = 0, AvgPressure = 0)
+
+for (i in 1:length(pitcherList)) {
+  thisPitcher = pitcherList[i]
+  
+  thisPitcherData = newP2020Data %>% filter(player_name == thisPitcher)
+  thisPitcherData = thisPitcherData %>% select(player_name, events, stand, p_throws, pressure_score)
+  thisPitcherData = thisPitcherData %>% filter(events != "null")
+  
+  thisPitcherData07 = thisPitcherData %>% filter(pressure_score <= 7)
+  thisPitcherDataOver7 = thisPitcherData %>% filter(pressure_score > 7)
+  
+  thisPitcher.PA = nrow(thisPitcherData)
+  thisPitcher07.PA = nrow(thisPitcherData07)
+  thisPitcherOver7.PA = nrow(thisPitcherDataOver7)
+  
+  thisPitcherData$isReach = 0
+  thisPitcherData07$isReach = 0
+  thisPitcherDataOver7$isReach = 0
+  
+  thisPitcherData$isReach = ifelse(thisPitcherData$events == "single" | thisPitcherData$events == "double" | thisPitcherData$events == "triple" | thisPitcherData$events == "home_run" | thisPitcherData$events == "fielders_choice" | thisPitcherData$events == "walk" | thisPitcherData$events == "hit_by_pitch", 1, 0)
+  
+  thisPitcherData07$isReach = ifelse(thisPitcherData07$events == "single" | thisPitcherData07$events == "double" | thisPitcherData07$events == "triple" | thisPitcherData07$events == "home_run" | thisPitcherData07$events == "fielders_choice" | thisPitcherData07$events == "walk" | thisPitcherData07$events == "hit_by_pitch", 1, 0)
+  
+  thisPitcherDataOver7$isReach = ifelse(thisPitcherDataOver7$events == "single" | thisPitcherDataOver7$events == "double" | thisPitcherDataOver7$events == "triple" | thisPitcherDataOver7$events == "home_run" | thisPitcherDataOver7$events == "fielders_choice" | thisPitcherDataOver7$events == "walk" | thisPitcherDataOver7$events == "hit_by_pitch", 1, 0)
+  
+  thisPitcher.Reach = sum(thisPitcherData$isReach)
+  thisPitcher07.Reach = sum(thisPitcherData07$isReach)
+  thisPitcherOver7.Reach = sum(thisPitcherDataOver7$isReach)
+  
+  thisPitcher.OBP = round((thisPitcher.Reach/thisPitcher.PA), 3)
+  thisPitcher07.OBP = round((thisPitcher07.Reach/thisPitcher07.PA), 3)
+  thisPitcherOver7.OBP = round((thisPitcherOver7.Reach/thisPitcherOver7.PA), 3)
+  
+  output1[i,1] = thisPitcher
+  output1[i,2] = thisPitcher.OBP
+  output1[i,3] = thisPitcher07.OBP
+  output1[i,4] = thisPitcherOver7.OBP
+}
+
+output1
+
+formattable(output1)
+```
+
+>> Getting stats per pitcher and putting into chart
+> AVERAGE PRESSURE SCORE
+> OBP AGAINST BASED ON PRESSURE SCORE
+
+```{r}
+avgPitcherList = unique(newP2020Data$player_name)
+
+for (i in 1:length(avgPitcherList)) {
+  avgPitcher = avgPitcherList[i]
+  thisPitcherData2 = newP2020Data %>% filter(player_name == avgPitcher)
+  thisPitcherData2 = thisPitcherData2 %>% select(player_name, pressure_score)
+  
+  avgPitcher.Pitches = nrow(thisPitcherData2)
+  avgPitcher.TotalPressure = sum(thisPitcherData2$pressure_score)
+  
+  avgPitcher.AvgPressure = round((avgPitcher.TotalPressure/avgPitcher.Pitches), 2)
+  
+  output1[i,5] = avgPitcher.AvgPressure
+}
+
+formattable(output1)
+
+```
+
